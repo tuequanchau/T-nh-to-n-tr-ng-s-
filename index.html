@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minh Họa Tối Ưu Hóa Trọng Số Động - Puzzle Parking</title>
+  <title>Minh Họa Tối Ưu Hóa Trọng Số Động - Dynamic Weight Optimization</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Plotly.js CDN -->
@@ -19,7 +19,7 @@
         <span>⚙️</span> Mô Hình Minh Họa Tính Tối Ưu Của Bộ Trọng Số Động
       </h1>
       <p class="text-sm text-slate-500 mt-1">
-        Điều chỉnh ngữ cảnh bãi đỗ xe hoặc tự động tìm bộ trọng số $W^* = [w_1, w_2, w_3]$ tối ưu nhất bằng thuật toán quét không gian trạng thái.
+        Điều chỉnh ngữ cảnh bãi đỗ xe hoặc tự động tìm bộ trọng số $W^* = [w_1, w_2, w_3]$ tối ưu nhất phù hợp với từng bối cảnh vận hành.
       </p>
     </div>
 
@@ -50,9 +50,9 @@
           <div>
             <div class="flex justify-between text-sm font-semibold mb-1">
               <span class="text-slate-700">w1 (Hiệu quả Tải trọng):</span>
-              <span id="w1Val" class="text-blue-600 font-bold">40%</span>
+              <span id="w1Val" class="text-blue-600 font-bold">45%</span>
             </div>
-            <input type="range" id="w1Slider" min="0" max="100" value="40" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="onWeightChange('w1')">
+            <input type="range" id="w1Slider" min="0" max="100" value="45" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="onWeightChange('w1')">
           </div>
 
           <!-- w2 -->
@@ -68,9 +68,9 @@
           <div>
             <div class="flex justify-between text-sm font-semibold mb-1">
               <span class="text-slate-700">w3 (Tối ưu Thời gian đỗ):</span>
-              <span id="w3Val" class="text-amber-600 font-bold">25%</span>
+              <span id="w3Val" class="text-amber-600 font-bold">20%</span>
             </div>
-            <input type="range" id="w3Slider" min="0" max="100" value="25" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600" oninput="onWeightChange('w3')">
+            <input type="range" id="w3Slider" min="0" max="100" value="20" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600" oninput="onWeightChange('w3')">
           </div>
         </div>
 
@@ -82,7 +82,7 @@
         <!-- Thẻ hiển thị kết quả tối ưu -->
         <div id="optimalResultCard" class="hidden p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs space-y-1">
           <div class="font-bold text-sm text-indigo-950 flex items-center gap-1">
-            <span>✨</span> Bộ Trọng Số Tối Ưu Đã Tìm Thấy ($W^*$):
+            <span>✨</span> Bộ Trọng Số Tối Ưu Tìm Thấy ($W^*$):
           </div>
           <p id="optimalResultText" class="font-mono text-xs font-semibold text-indigo-800">w1: --%, w2: --%, w3: --%</p>
           <p id="optimalScoreText" class="text-[11px] text-indigo-600">Điểm hiệu suất tổng hợp: --/100</p>
@@ -122,16 +122,16 @@
   </div>
 
   <script>
-    // Hàm mô phỏng hiệu quả giải quyết 3 mục tiêu (Thang điểm 0 - 100) - ĐÃ CÂN BẰNG LẠI CÔNG THỨC TOÁN
+    // 1. HÀM TÍNH HIỆU QUẢ CỦA TỪNG TIÊU CHÍ (0 - 100 điểm)
     function calculatePerformance(w1, w2, w3, occupancy) {
-      // 1. Hiệu quả Tải trọng (Năng lượng tiêu thụ): w1 chiếm vai trò chính, điều chỉnh nhẹ theo mật độ
-      let sizeEff = (w1 * 2.2) + (occupancy * 0.1);
+      // Hiệu quả Tải trọng: w1 đóng vai trò quyết định chính
+      let sizeEff = w1 * 1.95 + 10;
 
-      // 2. Tốc độ & Bước di chuyển: Giờ cao điểm (occupancy cao) đòi hỏi w2 phải đủ lớn để giữ chỉ số cao
-      let stepsEff = (w2 * 2.2) + (occupancy * 0.15) - 10;
+      // Tốc độ & Bước di chuyển: w2 quyết định chính, tăng nhẹ khi mật độ đông
+      let stepsEff = w2 * 1.85 + (occupancy * 0.1) + 5;
 
-      // 3. Tối ưu Thời gian đỗ: Khung giờ thấp điểm (occupancy thấp) tạo điều kiện tối đa cho việc phân tầng thời gian
-      let timeEff = (w3 * 2.2) + ((100 - occupancy) * 0.25);
+      // Tối ưu Thời gian đỗ: w3 quyết định chính, tăng mạnh khi bãi thưa xe (nhiều khoảng rảnh)
+      let timeEff = w3 * 1.85 + ((100 - occupancy) * 0.15) + 5;
 
       return {
         size: Math.round(Math.min(100, Math.max(10, sizeEff))),
@@ -140,7 +140,7 @@
       };
     }
 
-    // Cập nhật giao diện Đồ thị Radar
+    // 2. CẬP NHẬT ĐỒ THỊ RADAR
     function updateRadarChart() {
       const occ = parseFloat(document.getElementById('occupancySlider').value);
       const w1 = parseFloat(document.getElementById('w1Slider').value);
@@ -182,7 +182,7 @@
       Plotly.newPlot('radarChart', data, layout, { responsive: true, displayModeBar: false });
     }
 
-    // Xử lý khi thanh trượt Trọng số thay đổi (Tự động chuẩn hóa tổng = 100%)
+    // 3. XỬ LÝ KHI THAY ĐỔI THANH TRƯỢT TRỌNG SỐ THỦ CÔNG
     function onWeightChange(changedKey) {
       let w1 = parseFloat(document.getElementById('w1Slider').value);
       let w2 = parseFloat(document.getElementById('w2Slider').value);
@@ -220,21 +220,31 @@
       updateRadarChart();
     }
 
-    // Xử lý khi Mật độ xe thay đổi
     function onOccupancyChange() {
       const occ = document.getElementById('occupancySlider').value;
       document.getElementById('occupancyVal').innerText = occ + '%';
       updateRadarChart();
     }
 
-    // TÌM BỘ TRỌNG SỐ TỐI ƯU CÂN BẰNG CHO MỖI BỐI CẢNH MẬT ĐỘ XE
+    // 4. QUÉT KHÔNG GIAN VÀ TÌM BỘ TRỌNG SỐ TỐI ƯU CHUẨN LÝ THUYẾT
     function findOptimalWeights() {
       const occ = parseFloat(document.getElementById('occupancySlider').value);
 
       let bestScore = -1;
       let bestW = { w1: 0, w2: 0, w3: 0 };
 
-      // Duyệt qua không gian bộ số (w1 + w2 + w3 = 100)
+      // Xác định Trọng số Ưu tiên của Bối cảnh (Context Target Weights)
+      // Thấp điểm (<40%): Ưu tiên w3; Trung bình (40-75%): Ưu tiên w1; Cao điểm (>75%): Ưu tiên w2
+      let targetW1 = 0.35, targetW2 = 0.35, targetW3 = 0.30;
+      if (occ < 40) {
+        targetW1 = 0.25; targetW2 = 0.25; targetW3 = 0.50; // Thấp điểm ưu tiên Thời gian đỗ
+      } else if (occ <= 75) {
+        targetW1 = 0.45; targetW2 = 0.35; targetW3 = 0.20; // Trung bình ưu tiên Hiệu quả Tải trọng
+      } else {
+        targetW1 = 0.25; targetW2 = 0.60; targetW3 = 0.15; // Cao điểm ưu tiên Tốc độ di chuyển
+      }
+
+      // Quét không gian tổ hợp (w1 + w2 + w3 = 100)
       for (let w1 = 5; w1 <= 80; w1 += 5) {
         for (let w2 = 5; w2 <= 80; w2 += 5) {
           let w3 = 100 - w1 - w2;
@@ -242,18 +252,18 @@
             
             let perf = calculatePerformance(w1, w2, w3, occ);
             
-            // Hàm đánh giá tổng thể (Trung bình cộng hiệu suất 3 tiêu chí)
-            let totalScore = (perf.size + perf.steps + perf.time) / 3;
+            // Hàm đánh giá thích nghi bối cảnh (Context-Aware Fitness Function)
+            let fitScore = (perf.size * targetW1) + (perf.steps * targetW2) + (perf.time * targetW3);
 
-            if (totalScore > bestScore) {
-              bestScore = totalScore;
+            if (fitScore > bestScore) {
+              bestScore = fitScore;
               bestW = { w1, w2, w3 };
             }
           }
         }
       }
 
-      // Đặt lại các thanh trượt về bộ số tối ưu tìm được
+      // Cập nhật lại giao diện
       document.getElementById('w1Slider').value = bestW.w1;
       document.getElementById('w2Slider').value = bestW.w2;
       document.getElementById('w3Slider').value = bestW.w3;
@@ -262,19 +272,18 @@
       document.getElementById('w2Val').innerText = bestW.w2 + '%';
       document.getElementById('w3Val').innerText = bestW.w3 + '%';
 
-      // Hiển thị kết quả lên giao diện
       const resultCard = document.getElementById('optimalResultCard');
       const resultText = document.getElementById('optimalResultText');
       const scoreText = document.getElementById('optimalScoreText');
 
       resultCard.classList.remove('hidden');
-      resultText.innerText = `w1 (Hiệu quả Tải trọng): ${bestW.w1}% | w2 (Bước): ${bestW.w2}% | w3 (Thời gian): ${bestW.w3}%`;
-      scoreText.innerText = `Điểm hiệu suất trung bình: ${bestScore.toFixed(1)}/100 (Bối cảnh mật độ xe ${occ}%)`;
+      resultText.innerText = `w1 (Tải trọng): ${bestW.w1}% | w2 (Bước): ${bestW.w2}% | w3 (Thời gian): ${bestW.w3}%`;
+      scoreText.innerText = `Điểm hiệu suất thích nghi bối cảnh: ${bestScore.toFixed(1)}/100 (Bối cảnh mật độ xe ${occ}%)`;
 
       updateRadarChart();
     }
 
-    // Khởi chạy ban đầu
+    // Khởi chạy
     updateRadarChart();
   </script>
 </body>
