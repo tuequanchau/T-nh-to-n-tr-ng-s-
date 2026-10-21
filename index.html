@@ -49,7 +49,7 @@
           <!-- w1 -->
           <div>
             <div class="flex justify-between text-sm font-semibold mb-1">
-              <span class="text-slate-700">w1 (An toàn Kích thước/Tải trọng):</span>
+              <span class="text-slate-700">w1 (Hiệu quả Tải trọng):</span>
               <span id="w1Val" class="text-blue-600 font-bold">40%</span>
             </div>
             <input type="range" id="w1Slider" min="0" max="100" value="40" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="onWeightChange('w1')">
@@ -110,7 +110,7 @@
             <div id="effSteps" class="text-lg font-black">--</div>
           </div>
           <div class="p-2 rounded-lg bg-amber-50 text-amber-800">
-            <div class="text-[10px] font-bold uppercase">Tối ưu Lưu thông</div>
+            <div class="text-[10px] font-bold uppercase">Tối ưu Thời gian đỗ</div>
             <div id="effTime" class="text-lg font-black">--</div>
           </div>
         </div>
@@ -122,25 +122,21 @@
   </div>
 
   <script>
-    // Hàm mô phỏng hiệu quả giải quyết 3 mục tiêu (Thang điểm 0 - 100)
-    // Dựa trên trọng số cài đặt và Mật độ xe (Occupancy Rate)
+    // Hàm mô phỏng hiệu quả giải quyết 3 mục tiêu (Thang điểm 0 - 100) - ĐÃ CÂN BẰNG LẠI CÔNG THỨC TOÁN
     function calculatePerformance(w1, w2, w3, occupancy) {
-      // 1. Hiệu quả Kích thước / Tải trọng (An toàn khung)
-      // Càng đông xe (occupancy cao), yêu cầu an toàn tải trọng càng quan trọng
-      let sizeEff = Math.min(100, (w1 * 1.8) + (occupancy * 0.25));
+      // 1. Hiệu quả Tải trọng (Năng lượng tiêu thụ): w1 chiếm vai trò chính, điều chỉnh nhẹ theo mật độ
+      let sizeEff = (w1 * 2.2) + (occupancy * 0.1);
 
-      // 2. Hiệu quả Tốc độ / Số bước di chuyển (Giải phóng tắc nghẽn)
-      // Khung giờ cao điểm (occupancy cao) tốn nhiều bước trượt, nên w2 lớn sẽ phát huy tác dụng cực đại
-      let stepsEff = Math.min(100, (w2 * 2.0) - (occupancy * 0.15) + 15);
+      // 2. Tốc độ & Bước di chuyển: Giờ cao điểm (occupancy cao) đòi hỏi w2 phải đủ lớn để giữ chỉ số cao
+      let stepsEff = (w2 * 2.2) + (occupancy * 0.15) - 10;
 
-      // 3. Hiệu quả Tối ưu Lưu thông / Thời gian đỗ
-      // Khung giờ thấp điểm (occupancy thấp), xếp xe đúng tầng lâu dài đạt hiệu quả cao
-      let timeEff = Math.min(100, (w3 * 2.1) + ((100 - occupancy) * 0.2));
+      // 3. Tối ưu Thời gian đỗ: Khung giờ thấp điểm (occupancy thấp) tạo điều kiện tối đa cho việc phân tầng thời gian
+      let timeEff = (w3 * 2.2) + ((100 - occupancy) * 0.25);
 
       return {
-        size: Math.round(Math.max(10, sizeEff)),
-        steps: Math.round(Math.max(10, stepsEff)),
-        time: Math.round(Math.max(10, timeEff))
+        size: Math.round(Math.min(100, Math.max(10, sizeEff))),
+        steps: Math.round(Math.min(100, Math.max(10, stepsEff))),
+        time: Math.round(Math.min(100, Math.max(10, timeEff)))
       };
     }
 
@@ -161,9 +157,9 @@
         type: 'scatterpolar',
         r: [perf.size, perf.steps, perf.time],
         theta: [
-          'An toàn Tải trọng & Kích thước', 
+          'Hiệu quả Tải trọng', 
           'Tốc độ & Bước di chuyển', 
-          'Tối ưu Lưu thông Thời gian'
+          'Tối ưu Thời gian đỗ'
         ],
         fill: 'toself',
         fillcolor: 'rgba(99, 102, 241, 0.25)',
@@ -197,7 +193,6 @@
       if (total === 0) {
         w1 = 34; w2 = 33; w3 = 33;
       } else if (total !== 100) {
-        // Tự động điều chỉnh 2 thanh trượt còn lại để tổng giữ nguyên 100%
         let remainder = 100 - (changedKey === 'w1' ? w1 : (changedKey === 'w2' ? w2 : w3));
         if (changedKey === 'w1') {
           let sum23 = w2 + w3 || 1;
@@ -232,14 +227,14 @@
       updateRadarChart();
     }
 
-    // QUÉT TOÀN BỘ KHÔNG GIAN BỘ SỐ ĐỂ TÌM BỘ TRỌNG SỐ TỐI ƯU NHẤT
+    // TÌM BỘ TRỌNG SỐ TỐI ƯU CÂN BẰNG CHO MỖI BỐI CẢNH MẬT ĐỘ XE
     function findOptimalWeights() {
       const occ = parseFloat(document.getElementById('occupancySlider').value);
 
       let bestScore = -1;
       let bestW = { w1: 0, w2: 0, w3: 0 };
 
-      // Vòng lặp duyệt qua tất cả các tổ hợp (w1 + w2 + w3 = 100)
+      // Duyệt qua không gian bộ số (w1 + w2 + w3 = 100)
       for (let w1 = 5; w1 <= 80; w1 += 5) {
         for (let w2 = 5; w2 <= 80; w2 += 5) {
           let w3 = 100 - w1 - w2;
@@ -247,9 +242,8 @@
             
             let perf = calculatePerformance(w1, w2, w3, occ);
             
-            // Hàm mục tiêu tổng hợp cho bối cảnh hiện tại:
-            // Khung giờ cao điểm (occ cao) cần ưu tiên nặng w2 & w1, giờ thấp điểm ưu tiên w3
-            let totalScore = (perf.size * 0.35) + (perf.steps * 0.40) + (perf.time * 0.25);
+            // Hàm đánh giá tổng thể (Trung bình cộng hiệu suất 3 tiêu chí)
+            let totalScore = (perf.size + perf.steps + perf.time) / 3;
 
             if (totalScore > bestScore) {
               bestScore = totalScore;
@@ -259,7 +253,7 @@
         }
       }
 
-      // Đặt lại các thanh trượt về kết quả tối ưu tìm được
+      // Đặt lại các thanh trượt về bộ số tối ưu tìm được
       document.getElementById('w1Slider').value = bestW.w1;
       document.getElementById('w2Slider').value = bestW.w2;
       document.getElementById('w3Slider').value = bestW.w3;
@@ -274,8 +268,8 @@
       const scoreText = document.getElementById('optimalScoreText');
 
       resultCard.classList.remove('hidden');
-      resultText.innerText = `w1 (Tải trọng): ${bestW.w1}% | w2 (Bước): ${bestW.w2}% | w3 (Thời gian): ${bestW.w3}%`;
-      scoreText.innerText = `Điểm hiệu suất tổng hợp đạt được: ${bestScore.toFixed(1)}/100 (Bối cảnh mật độ xe ${occ}%)`;
+      resultText.innerText = `w1 (Hiệu quả Tải trọng): ${bestW.w1}% | w2 (Bước): ${bestW.w2}% | w3 (Thời gian): ${bestW.w3}%`;
+      scoreText.innerText = `Điểm hiệu suất trung bình: ${bestScore.toFixed(1)}/100 (Bối cảnh mật độ xe ${occ}%)`;
 
       updateRadarChart();
     }
